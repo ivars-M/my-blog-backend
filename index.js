@@ -41,7 +41,10 @@ app.use(express.json());
 //Šī vieta JĀMAINA ADRESE
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://my-blog-frontend-ten.vercel.app",
+    ],
     credentials: true,
   }),
 );
@@ -111,7 +114,6 @@ app.patch(
   handleValidationErrors,
   PostController.update,
 );
-
 
 // Izmantojam portu no servera iestatījumiem vai 4444 kā rezerves variantu lokāli
 const PORT = process.env.PORT || 4444;
