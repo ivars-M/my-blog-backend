@@ -1,8 +1,13 @@
-import "dotenv/config"; // Šis ielādē datus no .env faila
+import "dotenv/config"; // Ielādē datus no .env faila
 import express from "express";
 import multer from "multer";
 import cors from "cors";
 import mongoose from "mongoose";
+
+// JAUNIE IMPORTI CLOUDINARY INTEGRĀCIJAI
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+
 import commentRoutes from "./routes/comments.js";
 import { createComment } from "./controllers/commentController.js";
 
@@ -14,31 +19,33 @@ import {
 import { checkAuth, handleValidationErrors } from "./utils/index.js";
 import { UserController, PostController } from "./controllers/index.js";
 
-// const express = require("express"); // 2. IMPORTĒJAM EXPRESS
+// 1. CLOUDINARY KONFIGURĀCIJA (izmanto mainīgos no .env)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-const dbURI = process.env.MONGODB_URI;
-mongoose
-  .connect(dbURI)
-
-  .then(() => console.log("DB OK"))
-  .catch((err) => console.log("DB ERR", err));
-
-const app = express();
-
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (_, file, cb) => {
-    cb(null, file.originalname);
+// 2. CLOUDINARY STORAGE IESTATĪŠANA (Aizstāj veco diskStorage)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'blog-uploads', // Mape tavā Cloudinary panelī
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
   },
 });
 
 const upload = multer({ storage });
 
+const dbURI = process.env.MONGODB_URI;
+mongoose
+  .connect(dbURI)
+  .then(() => console.log("DB OK"))
+  .catch((err) => console.log("DB ERR", err));
+
+const app = express();
 app.use(express.json());
 
-//Šī vieta JĀMAINA ADRESE
 app.use(
   cors({
     origin: [
@@ -49,12 +56,18 @@ app.use(
   }),
 );
 
+// Paturam šo, lai vecās bildes (kas jau ir serverī) joprojām ielādētos
 app.use("/uploads", express.static("uploads"));
+
 app.use("/comments", commentRoutes);
+
+// --- AUGŠUPIELĀDES MARŠRUTI (Tagad izmanto Cloudinary) ---
+
 app.post("/upload/avatar", upload.single("image"), (req, res) => {
   try {
     res.json({
-      url: "/uploads/" + req.file.filename,
+      // Cloudinary atgriež pilnu URL (https://res.cloudinary.com/...)
+      url: req.file.path, 
     });
   } catch (err) {
     console.log(err);
@@ -62,18 +75,22 @@ app.post("/upload/avatar", upload.single("image"), (req, res) => {
   }
 });
 
-app.post(
-  "/auth/login",
-  loginValidation,
-  handleValidationErrors,
-  UserController.login,
-);
-app.post(
-  "/auth/register",
-  registerValidation,
-  handleValidationErrors,
-  UserController.register,
-);
+app.post("/posts/uploads", checkAuth, upload.single("image"), (req, res) => {
+  try {
+    res.json({
+      url: req.file.path, 
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Post image upload failed" });
+  }
+});
+
+// --- PĀRĒJIE MARŠRUTI (Paliek nemainīti) ---
+
+app.post("/auth/login", loginValidation, handleValidationErrors, UserController.login);
+app.post("/auth/register", registerValidation, handleValidationErrors, UserController.register);
+
 app.patch("/auth/avatar", checkAuth, async (req, res) => {
   try {
     const { avatarUrl } = req.body;
@@ -89,33 +106,16 @@ app.get("/auth/me", checkAuth, UserController.getMe);
 app.patch("/auth/me", checkAuth, UserController.updateProfile);
 app.delete("/auth/me", checkAuth, UserController.removeMe);
 app.patch("/auth/password", checkAuth, UserController.updatePassword);
-app.post("/posts/uploads", checkAuth, upload.single("image"), (req, res) => {
-  res.json({
-    url: "/uploads/" + req.file.filename,
-  });
-});
+
 app.get("/tags", PostController.getLastTags);
 app.get("/posts", PostController.getAll);
 app.get("/posts/tags", PostController.getLastTags);
 app.get("/posts/:id", PostController.getOne);
 
-app.post(
-  "/posts",
-  checkAuth,
-  postCreateValidation,
-  handleValidationErrors,
-  PostController.create,
-);
+app.post("/posts", checkAuth, postCreateValidation, handleValidationErrors, PostController.create);
 app.delete("/posts/:id", checkAuth, PostController.remove);
-app.patch(
-  "/posts/:id",
-  checkAuth,
-  postCreateValidation,
-  handleValidationErrors,
-  PostController.update,
-);
+app.patch("/posts/:id", checkAuth, postCreateValidation, handleValidationErrors, PostController.update);
 
-// Izmantojam portu no servera iestatījumiem vai 4444 kā rezerves variantu lokāli
 const PORT = process.env.PORT || 4444;
 
 app.listen(PORT, (err) => {
@@ -124,7 +124,3 @@ app.listen(PORT, (err) => {
   }
   console.log(`Serveris griežas uz porta ${PORT}`);
 });
-
-
-
-// npm run start:dev
