@@ -125,11 +125,6 @@ app.listen(PORT, (err) => {
   console.log(`Serveris griežas uz porta ${PORT}`);
 });
 
-// app.listen(4444, (err) => {
-//   if (err) {
-//     console.log(err);
-//   }
-//   console.log("Server OK");
-// });
+
 
 // npm run start:dev
