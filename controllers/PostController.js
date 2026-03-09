@@ -23,8 +23,12 @@ export const getPostsByTag = async (req, res) => {
     const tag = req.params.tag; // Iegūstam tagu no URL
 
     // Meklējam rakstus, kuru 'tags' masīvā ir šis tags
-    const posts = await PostModel.find({ tags: tag }).populate("user").exec();
-
+    // const posts = await PostModel.find({ tags: tag }).populate("user").exec();
+    const posts = await PostModel.find({
+      tags: { $regex: tag, $options: "i" },
+    })
+      .populate("user")
+      .exec();
     res.json(posts);
   } catch (err) {
     console.log(err);
