@@ -18,6 +18,21 @@ export const getLastTags = async (req, res) => {
     res.status(500).json({ message: "Neizdevās iegūt rakstus" });
   }
 };
+export const getPostsByTag = async (req, res) => {
+  try {
+    const tag = req.params.tag; // Iegūstam tagu no URL
+
+    // Meklējam rakstus, kuru 'tags' masīvā ir šis tags
+    const posts = await PostModel.find({ tags: tag }).populate("user").exec();
+
+    res.json(posts);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Neizdevās iegūt rakstus pēc taga",
+    });
+  }
+};
 
 export const getAll = async (req, res) => {
   try {

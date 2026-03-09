@@ -106,6 +106,7 @@ app.patch("/auth/password", checkAuth, UserController.updatePassword);
 app.get("/tags", PostController.getLastTags);
 app.get("/posts", PostController.getAll);
 app.get("/posts/tags", PostController.getLastTags);
+app.get("/posts/tags/:tag", PostController.getPostsByTag);
 app.get("/posts/:id", PostController.getOne);
 
 app.post(
