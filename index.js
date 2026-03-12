@@ -99,7 +99,9 @@ app.post(
 );
 app.get("/auth/me", checkAuth, UserController.getMe);
 app.patch("/auth/me", checkAuth, UserController.updateProfile);
-app.patch("/auth/avatar", checkAuth, UserController.updateAvatarController);
+
+app.patch("/auth/avatar", checkAuth, UserController.updateAvatar);
+
 app.delete("/auth/me", checkAuth, UserController.removeMe);
 app.patch("/auth/password", checkAuth, UserController.updatePassword);
 
