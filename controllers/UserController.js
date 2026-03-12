@@ -75,23 +75,48 @@ export const login = async (req, res) => {
     });
   }
 };
-export const updateAvatar = async (userId, newAvatarUrl) => {
-  const user = await UserModel.findById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  // Ja ir vecais avatars — dzēšam
-  if (user.avatarUrl) {
-    const oldAvatarPath = path.join(__dirname, "..", user.avatarUrl);
-    if (fs.existsSync(oldAvatarPath)) {
-      fs.unlinkSync(oldAvatarPath);
+export const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.userId; // Dabūjam no checkAuth
+    const newAvatarUrl = req.body.avatarUrl; // Šī būs Cloudinary saite
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "Lietotājs nav atrasts" });
     }
+
+    // Ja gribi dzēst no Cloudinary, tam vajag speciālu API izsaukumu,
+    // bet sākumam vienkārši pārrakstām URL:
+    user.avatarUrl = newAvatarUrl;
+    await user.save();
+
+    res.json({
+      success: true,
+      avatarUrl: user.avatarUrl,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Neizdevās atjaunot profilu" });
   }
-  // Saglabājam jauno avataru
-  user.avatarUrl = newAvatarUrl;
-  await user.save();
-  return user;
 };
+
+// export const updateAvatar = async (userId, newAvatarUrl) => {
+//   const user = await UserModel.findById(userId);
+//   if (!user) {
+//     throw new Error("User not found");
+//   }
+//   if (user.avatarUrl) {
+//     const oldAvatarPath = path.join(__dirname, "..", user.avatarUrl);
+//     if (fs.existsSync(oldAvatarPath)) {
+//       fs.unlinkSync(oldAvatarPath);
+//     }
+//   }
+//   user.avatarUrl = newAvatarUrl;
+//   await user.save();
+//   return user;
+// };
+
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, email } = req.body;
