@@ -6,7 +6,7 @@ import CommentModel from "../models/Comment.js";
 // Iegūst pēdējās piecas atzīmes no rakstiem
 export const getLastTags = async (req, res) => {
   try {
-    const posts = await PostModel.find().limit(5).exec();
+    const posts = await PostModel.find().limit(9).exec();
 
     const tags = posts
       .map((obj) => obj.tags)
