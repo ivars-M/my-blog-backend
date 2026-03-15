@@ -111,6 +111,7 @@ app.get("/posts", PostController.getAll);
 app.get("/posts/tags", PostController.getLastTags);
 app.get("/posts/tags/:tag", PostController.getPostsByTag);
 app.get("/posts/:id", PostController.getOne);
+// app.get('/posts/search', PostController.search);
 
 app.post(
   "/posts",

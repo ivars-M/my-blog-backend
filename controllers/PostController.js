@@ -201,3 +201,22 @@ export const update = async (req, res) => {
     });
   }
 };
+// export const search = async (req, res) => {
+//   try {
+//     const query = req.query.query; // Dabūjam meklējamo vārdu no URL (?query=...)
+
+//     const posts = await PostModel.find({
+//       $or: [
+//         { title: { $regex: query, $options: "i" } }, // 'i' nozīmē case-insensitive (nav svarīgi lielie/mazie burti)
+//         { text: { $regex: query, $options: "i" } },
+//       ],
+//     })
+//       .populate("user")
+//       .exec();
+
+//     res.json(posts);
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: "Neizdevās atrast rakstus" });
+//   }
+// };
