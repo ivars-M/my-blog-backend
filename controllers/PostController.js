@@ -2,6 +2,13 @@ import fs from "fs";
 import path from "path";
 import PostModel from "../models/Post.js";
 import CommentModel from "../models/Comment.js";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Iegūst pēdējās piecas atzīmes no rakstiem
 export const getLastTags = async (req, res) => {
@@ -130,27 +137,38 @@ export const remove = async (req, res) => {
   try {
     const postId = req.params.id;
 
+    // 1. Atrodam postu
     const post = await PostModel.findById(postId);
 
     if (!post) {
       return res.status(404).json({ message: "Posts nav atrasts" });
     }
-    await CommentModel.deleteMany({ post: postId });
 
-    // 1. Pārbaude: vai lietotājs ir autors
+    // 2. Pārbaude: vai lietotājs ir autors
     if (post.user.toString() !== req.userId) {
       return res.status(403).json({ message: "Nav tiesību dzēst šo postu" });
     }
 
-    // 2. Dzēšam attēlu, ja ir
+    // 3. Dzēšam attēlu no CLOUDINARY (nevis no diska)
     if (post.imageUrl) {
-      const filePath = path.join(process.cwd(), post.imageUrl);
-      fs.unlink(filePath, (err) => {
-        if (err) console.log("Neizdevās dzēst failu:", err);
-      });
+      try {
+        const parts = post.imageUrl.split("/");
+        const fileName = parts[parts.length - 1].split(".")[0]; // nosaukums bez paplašinājuma
+        const folder = parts[parts.length - 2]; // mapes nosaukums (blog-uploads)
+        const publicId = `${folder}/${fileName}`;
+
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary bilde izdzēsta:", publicId);
+      } catch (cloudErr) {
+        // Ja bilde nav atrodama Cloudinary, mēs tikai ierakstām konsolē, bet turpinām dzēst postu
+        console.log("Kļūda dzēšot bildi no Cloudinary:", cloudErr);
+      }
     }
 
-    // 3. Dzēšam postu
+    // 4. Dzēšam saistītos komentārus
+    await CommentModel.deleteMany({ post: postId });
+
+    // 5. Dzēšam pašu postu no DB
     await PostModel.findByIdAndDelete(postId);
 
     res.json({ success: true });
@@ -182,23 +200,46 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const postId = req.params.id;
-    const updatedPost = await PostModel.findByIdAndUpdate(
-      postId,
+
+    // 1. Atrodam esošo postu, lai zinātu, kāda bilde tam bija
+    const post = await PostModel.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Posts nav atrasts" });
+    }
+
+    // 2. Ja bilde ir mainījusies (datubāzē ir cita, nekā nāk no request)
+    // Un ja vecā bilde vispār eksistēja
+    if (post.imageUrl && post.imageUrl !== req.body.imageUrl) {
+      try {
+        const parts = post.imageUrl.split("/");
+        const fileName = parts[parts.length - 1].split(".")[0];
+        const folder = parts[parts.length - 2];
+        const publicId = `${folder}/${fileName}`;
+
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Vecā bilde izdzēsta no Cloudinary:", publicId);
+      } catch (err) {
+        console.log("Neizdevās izdzēst veco bildi:", err);
+      }
+    }
+
+    // 3. Atjaunojam informāciju datubāzē
+    await PostModel.updateOne(
+      { _id: postId },
       {
         title: req.body.title,
         text: req.body.text,
         imageUrl: req.body.imageUrl,
-        tags: req.body.tags,
         user: req.userId,
+        tags: req.body.tags,
       },
-      { new: true },
     );
-    res.json(updatedPost);
+
+    res.json({ success: true });
   } catch (err) {
     console.log(err);
-    res.status(500).json({
-      message: "Neizdevās atjaunot rakstu",
-    });
+    res.status(500).json({ message: "Neizdevās atjaunot rakstu" });
   }
 };
 // export const search = async (req, res) => {
