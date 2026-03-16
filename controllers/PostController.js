@@ -44,6 +44,20 @@ export const getPostsByTag = async (req, res) => {
     });
   }
 };
+export const getByUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    // Atrodam visus postus, kur 'user' lauks sakrīt ar userId
+    const posts = await PostModel.find({ user: userId }).populate('user').exec();
+
+    res.json(posts);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: 'Neizdevās ielādēt lietotāja rakstus',
+    });
+  }
+};
 
 export const getAll = async (req, res) => {
   try {

@@ -15,6 +15,8 @@ import {
 import { checkAuth, handleValidationErrors } from "./utils/index.js";
 import { UserController, PostController } from "./controllers/index.js";
 
+console.log("Mana saite:", process.env.MONGODB_URI);
+
 const dbURI = process.env.MONGODB_URI;
 mongoose
   .connect(dbURI)
@@ -52,7 +54,7 @@ app.use(
 );
 
 // Paturam šo vecajām bildēm, ja tādas vēl ir lokāli
-app.use("/uploads", express.static("uploads"));
+// app.use("/uploads", express.static("uploads"));
 app.use("/comments", commentRoutes);
 
 // --- AUGŠUPIELĀDES MARŠRUTI (Tagad uz Cloudinary) ---
@@ -111,6 +113,7 @@ app.get("/posts", PostController.getAll);
 app.get("/posts/tags", PostController.getLastTags);
 app.get("/posts/tags/:tag", PostController.getPostsByTag);
 app.get("/posts/:id", PostController.getOne);
+app.get("/posts/user/:id", PostController.getByUser);
 // app.get('/posts/search', PostController.search);
 
 app.post(
@@ -130,6 +133,10 @@ app.patch(
 );
 
 const PORT = process.env.PORT || 4444;
+// Testa maršruts, lai serveris neietu gulēt
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
 app.listen(PORT, (err) => {
   if (err) {
     return console.log(err);
