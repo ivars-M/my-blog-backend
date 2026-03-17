@@ -101,22 +101,6 @@ export const updateAvatar = async (req, res) => {
   }
 };
 
-// export const updateAvatar = async (userId, newAvatarUrl) => {
-//   const user = await UserModel.findById(userId);
-//   if (!user) {
-//     throw new Error("User not found");
-//   }
-//   if (user.avatarUrl) {
-//     const oldAvatarPath = path.join(__dirname, "..", user.avatarUrl);
-//     if (fs.existsSync(oldAvatarPath)) {
-//       fs.unlinkSync(oldAvatarPath);
-//     }
-//   }
-//   user.avatarUrl = newAvatarUrl;
-//   await user.save();
-//   return user;
-// };
-
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, email } = req.body;
@@ -211,5 +195,25 @@ export const removeMe = async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Neizdevās dzēst profilu" });
+  }
+};
+
+export const getAll = async (req, res) => {
+  try {
+    // Atrodam pēdējos 5 reģistrētos lietotājus
+    const users = await UserModel.find().limit(5).sort({ createdAt: -1 });
+
+    // Noņemam sensitīvos datus (paroles hash), lai neviens tos neredzētu
+    const usersData = users.map((user) => {
+      const { passwordHash, ...userData } = user._doc;
+      return userData;
+    });
+
+    res.json(usersData);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Neizdevās iegūt lietotāju sarakstu",
+    });
   }
 };
