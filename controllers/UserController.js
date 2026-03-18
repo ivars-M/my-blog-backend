@@ -16,6 +16,7 @@ export const register = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json(errors.array());
     }
+
     const password = req.body.password;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
@@ -37,7 +38,17 @@ export const register = async (req, res) => {
     res.json({ ...userData, token });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Registration failed" });
+
+    // Pārbaudām dublikātus (E11000)
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: "Lietotājs ar šādu e-pastu jau eksistē!",
+      });
+    }
+
+    res.status(500).json({
+      message: "Neizdevās reģistrēties",
+    });
   }
 };
 
@@ -46,39 +57,37 @@ export const login = async (req, res) => {
     const user = await UserModel.findOne({ email: req.body.email });
 
     if (!user) {
-      return res.status(404).json({ message: "User no found" });
+      return res.status(404).json({ message: "Lietotājs nav atrasts" });
     }
 
     const isValidPass = await bcrypt.compare(
       req.body.password,
       user._doc.passwordHash,
     );
+
     if (!isValidPass) {
-      return res.status(404).json({ message: "Invalid login or password " });
+      return res.status(404).json({ message: "Nepareizs e-pasts vai parole" });
     }
-    const token = jwt.sign(
-      {
-        _id: user._id,
-      },
-      "secret123",
-      {
-        expiresIn: "30d",
-      },
-    );
+
+    const token = jwt.sign({ _id: user._id }, "secret123", {
+      expiresIn: "30d",
+    });
+
     const { passwordHash: _, ...userData } = user._doc;
 
     res.json({ ...userData, token });
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      message: "Login failed, Invalid login or password ",
+      message: "Neizdevās ielogoties",
     });
   }
 };
+
 export const updateAvatar = async (req, res) => {
   try {
-    const userId = req.userId; // Dabūjam no checkAuth
-    const newAvatarUrl = req.body.avatarUrl; // Šī būs Cloudinary saite
+    const userId = req.userId;
+    const newAvatarUrl = req.body.avatarUrl;
 
     const user = await UserModel.findById(userId);
 
@@ -86,8 +95,6 @@ export const updateAvatar = async (req, res) => {
       return res.status(404).json({ message: "Lietotājs nav atrasts" });
     }
 
-    // Ja gribi dzēst no Cloudinary, tam vajag speciālu API izsaukumu,
-    // bet sākumam vienkārši pārrakstām URL:
     user.avatarUrl = newAvatarUrl;
     await user.save();
 
@@ -128,13 +135,11 @@ export const updatePassword = async (req, res) => {
       return res.status(404).json({ message: "Lietotājs nav atrasts" });
     }
 
-    // pārbaudām veco paroli
     const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
     if (!isValid) {
       return res.status(400).json({ message: "Vecā parole nav pareiza" });
     }
 
-    // saglabājam jauno paroli
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
 
@@ -154,25 +159,19 @@ export const getMe = async (req, res) => {
     const user = await UserModel.findById(req.userId);
     if (!user) {
       return res.status(404).json({
-        message: "User noot found",
+        message: "Lietotājs nav atrasts",
       });
     }
 
     const { passwordHash: _, ...userData } = user._doc;
-    const token = jwt.sign(
-      {
-        _id: user._id,
-      },
-      "secret123",
-      {
-        expiresIn: "30d",
-      },
-    );
+    const token = jwt.sign({ _id: user._id }, "secret123", {
+      expiresIn: "30d",
+    });
 
     res.json({ ...userData, token });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Failed to get user" }); // IZMAIŅA: pievienota kļūdu apstrāde
+    res.status(500).json({ message: "Neizdevās iegūt datus" });
   }
 };
 
@@ -200,10 +199,8 @@ export const removeMe = async (req, res) => {
 
 export const getAll = async (req, res) => {
   try {
-    // Atrodam pēdējos 5 reģistrētos lietotājus
     const users = await UserModel.find().limit(5).sort({ createdAt: -1 });
 
-    // Noņemam sensitīvos datus (paroles hash), lai neviens tos neredzētu
     const usersData = users.map((user) => {
       const { passwordHash, ...userData } = user._doc;
       return userData;
