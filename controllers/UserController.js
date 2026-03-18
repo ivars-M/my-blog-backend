@@ -7,6 +7,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { v2 as cloudinary } from "cloudinary";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -174,28 +176,66 @@ export const getMe = async (req, res) => {
     res.status(500).json({ message: "Neizdevās iegūt datus" });
   }
 };
-
 export const removeMe = async (req, res) => {
   try {
     const user = await UserModel.findById(req.userId);
+
     if (!user) {
       return res.status(404).json({ message: "Lietotājs nav atrasts" });
     }
 
-    if (user.avatarUrl) {
-      const avatarPath = path.join(__dirname, "..", user.avatarUrl);
-      if (fs.existsSync(avatarPath)) {
-        fs.unlinkSync(avatarPath);
+    // --- JAUNĀ MĀKOŅA DZĒŠANAS LOĢIKA ---
+    if (user.avatarUrl && user.avatarUrl.includes("cloudinary")) {
+      try {
+        // Izvelkam Public ID neatkarīgi no tā, kurā mapē bilde atrodas
+        const parts = user.avatarUrl.split("/");
+        const uploadIndex = parts.indexOf("upload");
+
+        // Paņemam visu pēc 'upload' un versijas (piem., v12345), noņemam paplašinājumu
+        const publicId = parts
+          .slice(uploadIndex + 2)
+          .join("/")
+          .split(".")[0];
+
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Cloudinary profila bilde izdzēsta:", publicId);
+      } catch (cloudErr) {
+        // Ja bilde mākonī nav atrodama, mēs tikai ierakstām to konsolē un turpinām
+        console.log("Kļūda dzēšot bildi no Cloudinary:", cloudErr);
       }
     }
+    // ------------------------------------
 
+    // Dzēšam lietotāju no datubāzes
     await UserModel.findByIdAndDelete(req.userId);
+
     res.json({ success: true });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Neizdevās dzēst profilu" });
   }
 };
+// export const removeMe = async (req, res) => {
+//   try {
+//     const user = await UserModel.findById(req.userId);
+//     if (!user) {
+//       return res.status(404).json({ message: "Lietotājs nav atrasts" });
+//     }
+
+//     if (user.avatarUrl) {
+//       const avatarPath = path.join(__dirname, "..", user.avatarUrl);
+//       if (fs.existsSync(avatarPath)) {
+//         fs.unlinkSync(avatarPath);
+//       }
+//     }
+
+//     await UserModel.findByIdAndDelete(req.userId);
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: "Neizdevās dzēst profilu" });
+//   }
+// };
 
 export const getAll = async (req, res) => {
   try {
