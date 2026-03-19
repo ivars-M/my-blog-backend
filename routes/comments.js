@@ -5,7 +5,7 @@ import {
   getCommentsByPost,
   deleteComment,
   getAllComments,
-} from "../controllers/commentController.js";
+} from "../controllers/CommentController.js";
 
 const router = express.Router();
 

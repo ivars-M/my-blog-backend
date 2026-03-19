@@ -10,19 +10,25 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Iegūst pēdējās piecas atzīmes no rakstiem
+// Iegūst pēdējās 9 atzīmes no rakstiem
 export const getLastTags = async (req, res) => {
   try {
-    const posts = await PostModel.find().limit(9).exec();
+    // 1. Paņemam pēdējos rakstus (varam paņemt vairāk, piemēram, 20, lai ir no kā izvēlēties unikālos)
+    const posts = await PostModel.find().limit(20).exec();
 
-    const tags = posts
+    // 2. Dabūjam visus tagus vienā masīvā, noņemam atstarpes un padarām mazos burtus
+    const allTags = posts
       .map((obj) => obj.tags)
       .flat()
-      .slice(0, 9);
-    res.json(tags);
+      .map((t) => t.trim().toLowerCase());
+
+    // 3. MAĢIJA: Paturam tikai unikālos tagus un ierobežojam līdz 9 gabaliem
+    const uniqueTags = [...new Set(allTags)].slice(0, 9);
+
+    res.json(uniqueTags);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Neizdevās iegūt rakstus" });
+    res.status(500).json({ message: "Neizdevās iegūt tagus" });
   }
 };
 export const getPostsByTag = async (req, res) => {
@@ -48,13 +54,15 @@ export const getByUser = async (req, res) => {
   try {
     const userId = req.params.id;
     // Atrodam visus postus, kur 'user' lauks sakrīt ar userId
-    const posts = await PostModel.find({ user: userId }).populate('user').exec();
+    const posts = await PostModel.find({ user: userId })
+      .populate("user")
+      .exec();
 
     res.json(posts);
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      message: 'Neizdevās ielādēt lietotāja rakstus',
+      message: "Neizdevās ielādēt lietotāja rakstus",
     });
   }
 };
@@ -195,11 +203,22 @@ export const remove = async (req, res) => {
 // Izveido jaunu rakstu
 export const create = async (req, res) => {
   try {
+    // --- BETONA LOĢIKA SĀKAS ---
+    let rawTags = req.body.tags || [];
+    if (typeof rawTags === "string") {
+      rawTags = rawTags.split(","); // Sadalām, ja atnāk kā teksts "daba, ipp"
+    }
+
+    const uniqueTags = [
+      ...new Set(rawTags.map((t) => String(t).trim().toLowerCase())),
+    ].filter((t) => t !== "");
+    // --- BETONA LOĢIKA BEIDZAS ---
+
     const doc = new PostModel({
       title: req.body.title,
       text: req.body.text,
       imageUrl: req.body.imageUrl,
-      tags: req.body.tags,
+      tags: uniqueTags, // Izmantojam mūsu "tīro" sarakstu
       user: req.userId,
     });
 
@@ -237,8 +256,17 @@ export const update = async (req, res) => {
         console.log("Neizdevās izdzēst veco bildi:", err);
       }
     }
+    // --- JAUNĀ TAGU KONTROLE ---
+    let rawTags = req.body.tags || [];
+    if (typeof rawTags === "string") {
+      rawTags = rawTags.split(",");
+    }
 
-    // 3. Atjaunojam informāciju datubāzē
+    const uniqueTags = [
+      ...new Set(rawTags.map((t) => String(t).trim().toLowerCase())),
+    ].filter((t) => t !== "");
+    // ----------------------------
+
     await PostModel.updateOne(
       { _id: postId },
       {
@@ -246,7 +274,7 @@ export const update = async (req, res) => {
         text: req.body.text,
         imageUrl: req.body.imageUrl,
         user: req.userId,
-        tags: req.body.tags,
+        tags: uniqueTags, // Šeit ieliekam unikālos
       },
     );
 
@@ -256,22 +284,3 @@ export const update = async (req, res) => {
     res.status(500).json({ message: "Neizdevās atjaunot rakstu" });
   }
 };
-// export const search = async (req, res) => {
-//   try {
-//     const query = req.query.query; // Dabūjam meklējamo vārdu no URL (?query=...)
-
-//     const posts = await PostModel.find({
-//       $or: [
-//         { title: { $regex: query, $options: "i" } }, // 'i' nozīmē case-insensitive (nav svarīgi lielie/mazie burti)
-//         { text: { $regex: query, $options: "i" } },
-//       ],
-//     })
-//       .populate("user")
-//       .exec();
-
-//     res.json(posts);
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Neizdevās atrast rakstus" });
-//   }
-// };

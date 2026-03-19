@@ -82,6 +82,26 @@ export const getAllComments = async (req, res) => {
   }
 };
 
+// controllers/CommentController.js
+
+export const update = async (req, res) => {
+  try {
+    const commentId = req.params.id;
+
+    // Atjaunojam komentāru datubāzē
+    await CommentModel.updateOne({ _id: commentId }, { text: req.body.text });
+
+    res.json({
+      success: true,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Neizdevās atjaunot komentāru",
+    });
+  }
+};
+
 // Dzēst komentāru
 export const deleteComment = async (req, res) => {
   try {

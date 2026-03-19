@@ -215,27 +215,6 @@ export const removeMe = async (req, res) => {
     res.status(500).json({ message: "Neizdevās dzēst profilu" });
   }
 };
-// export const removeMe = async (req, res) => {
-//   try {
-//     const user = await UserModel.findById(req.userId);
-//     if (!user) {
-//       return res.status(404).json({ message: "Lietotājs nav atrasts" });
-//     }
-
-//     if (user.avatarUrl) {
-//       const avatarPath = path.join(__dirname, "..", user.avatarUrl);
-//       if (fs.existsSync(avatarPath)) {
-//         fs.unlinkSync(avatarPath);
-//       }
-//     }
-
-//     await UserModel.findByIdAndDelete(req.userId);
-//     res.json({ success: true });
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Neizdevās dzēst profilu" });
-//   }
-// };
 
 export const getAll = async (req, res) => {
   try {

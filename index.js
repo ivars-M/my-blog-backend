@@ -13,7 +13,8 @@ import {
   postCreateValidation,
 } from "./validations.js";
 import { checkAuth, handleValidationErrors } from "./utils/index.js";
-import { UserController, PostController } from "./controllers/index.js";
+import { UserController, PostController, CommentController } from "./controllers/index.js";
+import PostModel from './models/Post.js';
 
 console.log("Mana saite:", process.env.MONGODB_URI);
 
@@ -106,6 +107,8 @@ app.patch("/auth/avatar", checkAuth, UserController.updateAvatar);
 
 app.delete("/auth/me", checkAuth, UserController.removeMe);
 app.patch("/auth/password", checkAuth, UserController.updatePassword);
+// Backendā jābūt šādai rindiņai:
+app.patch('/comments/:id', checkAuth, CommentController.update);
 
 // --- POSTU MARŠRUTI ---
 app.get("/tags", PostController.getLastTags);
@@ -143,3 +146,32 @@ app.listen(PORT, (err) => {
   }
   console.log(`Serveris griežas uz porta ${PORT}`);
 });
+
+
+// npm run start
+// VIENREIZĒJA TAGU TĪRĪŠANAS FUNKCIJA (Palaid un pēc tam izdzēs šo kodu!)
+// const cleanupTags = async () => {
+//   try {
+//     const posts = await PostModel.find(); 
+
+    // Atrodam visus postus
+    // for (const post of posts) {
+    //   if (post.tags && Array.isArray(post.tags)) {
+
+        // Pielietojam to pašu betona loģiku
+        // const uniqueTags = [...new Set(
+        //   post.tags.map(t => String(t).trim().toLowerCase())
+        // )].filter(t => t !== '');
+        
+        // Atjaunojam postu datubāzē
+//         await PostModel.updateOne({ _id: post._id }, { tags: uniqueTags });
+//       }
+//     }
+//     console.log("--- VISI TAGI IR IZTĪRĪTI! ---");
+//   } catch (err) {
+//     console.log("Kļūda tīrot tagus:", err);
+//   }
+// };
+
+// cleanupTags(); 
+// // Noņem komentāru šai rindiņai, palaid serveri vienreiz, un tad atkal aizkomentē!
