@@ -256,15 +256,21 @@ export const update = async (req, res) => {
         console.log("Neizdevās izdzēst veco bildi:", err);
       }
     }
-    // --- JAUNĀ TAGU KONTROLE ---
-    let rawTags = req.body.tags || [];
-    if (typeof rawTags === "string") {
-      rawTags = rawTags.split(",");
-    }
+    // --- JAUNĀ UN DROŠĀ TAGU KONTROLE ---
+    // Neatkarīgi no tā, vai atnāk string "a,b" vai masīvs ["a,b"] vai ["a","b"],
+    // mēs to pārvēršam tīrā, unikālā masīvā.
+    const rawTags = Array.isArray(req.body.tags)
+      ? req.body.tags.join(",")
+      : req.body.tags || "";
 
     const uniqueTags = [
-      ...new Set(rawTags.map((t) => String(t).trim().toLowerCase())),
-    ].filter((t) => t !== "");
+      ...new Set(
+        rawTags
+          .split(",")
+          .map((t) => String(t).trim().toLowerCase())
+          .filter((t) => t !== ""),
+      ),
+    ];
     // ----------------------------
 
     await PostModel.updateOne(
@@ -274,7 +280,7 @@ export const update = async (req, res) => {
         text: req.body.text,
         imageUrl: req.body.imageUrl,
         user: req.userId,
-        tags: uniqueTags, // Šeit ieliekam unikālos
+        tags: uniqueTags, // Šeit nonāk garantēti unikāli, mazi burti
       },
     );
 
