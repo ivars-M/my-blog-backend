@@ -152,6 +152,7 @@ app.listen(PORT, (err) => {
 });
 
 // npm run start
+
 // VIENREIZĒJA TAGU TĪRĪŠANAS FUNKCIJA (Palaid un pēc tam izdzēs šo kodu!)
 // const cleanupTags = async () => {
 //   try {
