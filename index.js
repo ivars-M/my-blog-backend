@@ -151,7 +151,7 @@ app.listen(PORT, (err) => {
   console.log(`Serveris griežas uz porta ${PORT}`);
 });
 
-// npm run start
+// npm run start:dev
 
 // VIENREIZĒJA TAGU TĪRĪŠANAS FUNKCIJA (Palaid un pēc tam izdzēs šo kodu!)
 // const cleanupTags = async () => {
