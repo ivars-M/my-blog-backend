@@ -71,7 +71,7 @@ app.post("/upload/avatar", uploadCloud.single("image"), (req, res) => {
     });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Avatar upload failed" });
+    res.status(500).json({ message: "Avatara ielāde neizdevās" });
   }
 });
 
@@ -86,7 +86,7 @@ app.post(
       });
     } catch (err) {
       console.log(err);
-      res.status(500).json({ message: "Post image upload failed" });
+      res.status(500).json({ message: "Attēla ielāde neizdevās" });
     }
   },
 );
