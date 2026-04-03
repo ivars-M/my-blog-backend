@@ -52,7 +52,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://my-blog-frontend-ten.vercel.app",
+      "https://https://ipp-projekts.vercel.app/",
     ],
     credentials: true,
   }),
