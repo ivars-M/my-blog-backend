@@ -50,7 +50,10 @@ const uploadCloud = multer({ storage: cloudinaryStorage });
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://ipp-projekts.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      "https://ideja-prakse-pieredze.vercel.app/",
+    ],
     credentials: true,
   }),
 );
