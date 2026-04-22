@@ -17,8 +17,9 @@ import {
   UserController,
   PostController,
   commentController,
+  GalleryController,
 } from "./controllers/index.js";
-import PostModel from "./models/Post.js";
+import galleryRoutes from "./routes/gallery.js";
 
 console.log("Mana saite:", process.env.MONGODB_URI);
 
@@ -63,6 +64,7 @@ app.use(
 app.use("/comments", commentRoutes);
 
 // --- AUGŠUPIELĀDES MARŠRUTI (Tagad uz Cloudinary) ---
+app.use("/api/gallery", galleryRoutes);
 
 app.post("/upload/avatar", uploadCloud.single("image"), (req, res) => {
   try {
@@ -74,6 +76,12 @@ app.post("/upload/avatar", uploadCloud.single("image"), (req, res) => {
     res.status(500).json({ message: "Avatara ielāde neizdevās" });
   }
 });
+app.post(
+  "/api/gallery/upload",
+  checkAuth,
+  uploadCloud.single("file"),
+  GalleryController.upload,
+);
 
 app.post(
   "/posts/uploads",
