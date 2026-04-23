@@ -15,6 +15,16 @@ const GallerySchema = new mongoose.Schema(
       enum: ["image", "video"],
       required: true,
     },
+    // --- PIEVIENO ŠOS LAUKUS ---
+    title: {
+      type: String,
+      default: "", // Var būt tukšs
+    },
+    description: {
+      type: String,
+      default: "", // Var būt tukšs
+    },
+    // ---------------------------
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

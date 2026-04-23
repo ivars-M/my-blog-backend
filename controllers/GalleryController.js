@@ -9,14 +9,11 @@ cloudinary.config({
 });
 
 const GalleryController = {
- 
-
   getAll: async (req, res) => {
     try {
-      const items = await Gallery.find();
+      // Pievienojam .sort({ createdAt: -1 }), lai jaunākie attēli būtu pirmie
+      const items = await Gallery.find().sort({ createdAt: -1 });
       console.log("=== GALERIJAS PIEPRASĪJUMS ===");
-      console.log("Atrasti ieraksti DB:", items.length);
-      console.log("Pirmais ieraksts (ja ir):", items[0]);
       res.json(items);
     } catch (err) {
       console.error("Kļūda getAll:", err);
@@ -30,19 +27,20 @@ const GalleryController = {
         return res.status(400).json({ message: "Fails nav sūtīts" });
       }
 
-      console.log("Mēģinu saglabāt DB bildi no:", req.file.path);
-      console.log("Lietotājs, kas augšupielādē:", req.userId);
+      console.log("Saņemtie dati:", req.body); // Šeit redzēsi virsrakstu un aprakstu
 
       const item = new Gallery({
         url: req.file.path,
         cloudinaryPublicId: req.file.filename,
         type: req.file.mimetype.startsWith("image/") ? "image" : "video",
-        user: req.userId, // Pārliecinies, ka checkAuth šo padod
+        user: req.userId,
+        // --- PIEVIENOTIE LAUKI ---
+        title: req.body.title || "",
+        description: req.body.description || "",
+        // -------------------------
       });
 
       const savedItem = await item.save();
-      console.log("Veiksmīgi saglabāts DB:", savedItem._id);
-
       res.json(savedItem);
     } catch (err) {
       console.log("SAGLABĀŠANAS KĻŪDA DB:", err);
@@ -55,8 +53,13 @@ const GalleryController = {
       const item = await Gallery.findById(req.params.id);
       if (!item) return res.status(404).json({ message: "Fails nav atrasts" });
 
+      // Pārbaudām resursa tipu Cloudinary dzēšanai
+      const resourceType = item.type === "video" ? "video" : "image";
+
       if (item.cloudinaryPublicId) {
-        await cloudinary.uploader.destroy(item.cloudinaryPublicId);
+        await cloudinary.uploader.destroy(item.cloudinaryPublicId, {
+          resource_type: resourceType,
+        });
       }
 
       await Gallery.findByIdAndDelete(req.params.id);
